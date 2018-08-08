@@ -1,3 +1,5 @@
+[本文出处](https://blog.csdn.net/lmb55/article/details/78266905)
+[代码](https://github.com/usernamecantbeXXX/DistributedLock)
 # 分布式锁
 
 秒杀：多个用户争抢资源，实现线程对资源的争抢，保证高效并发，保证操作正确
