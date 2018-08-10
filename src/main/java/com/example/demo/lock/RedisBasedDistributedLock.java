@@ -30,18 +30,21 @@ public class RedisBasedDistributedLock extends AbstractLock {
     public boolean tryLock() {
         long lockExpireTime = System.currentTimeMillis() + lockExpire + 1;//锁超时时间
         String stringOfLockExpireTime = String.valueOf(lockExpireTime);
+        //setnx==1，设置key成功，就是原来是没有锁，设置完跳出，
         if (jedis.setnx(lockKey, stringOfLockExpireTime) == 1) {//获取到锁
             //设置相关标识
             locked = true;
             setExclusiveOwnerThread(Thread.currentThread());
             return true;
         }
-        String value = jedis.get(lockKey);
-        if (value != null && isTimeExpired(value)) {//锁是过期的
+        //到这里就是有锁，
+        String value = jedis.get(lockKey);//把锁拿出来
+        //锁有没有过期呢？
+        if (value != null && isTimeExpired(value)) {//锁是过期的，这种情况就能进来拿锁
             //假设多个线程(非单jvm)同时走到这里
             String oldValue = jedis.getSet(lockKey, stringOfLockExpireTime);//原子操作
-            // 但是走到这里时每个线程拿到的oldValue肯定不可能一样(因为getset是原子性的)
-            // 假如拿到的oldValue依然是expired的，那么就说明拿到锁了
+            // 但是走到这里时每个线程拿到的oldValue肯定不可能一样(因为getset是原子性的)，一次只有一个成功
+            // <p>假如拿到的oldValue依然是expired的，那么就说明拿到锁了</p>
             if (oldValue != null && isTimeExpired(oldValue)) {//拿到锁
                 //设置相关标识
                 locked = true;
@@ -49,6 +52,7 @@ public class RedisBasedDistributedLock extends AbstractLock {
                 return true;
             }
         }
+        //没过期的锁，就只能等释放或者过期了
         return false;
     }
 
